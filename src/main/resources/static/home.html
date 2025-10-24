@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciador de Finanças Pessoais</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Inter Font (Modern Sans-serif) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+    <style>
+        /* Base Modern Dark Theme Variables */
+        :root {
+            --bg-color: #0F172A; /* Slate 900 */
+            --container-bg: #1E293B; /* Slate 800 */
+            --text-color: #F1F5F9; /* Slate 100 */
+            --primary-accent: #6366F1; /* Indigo 500 */
+            --input-bg: #334155; /* Slate 700 */
+            --shadow-color: rgba(0, 0, 0, 0.4);
+            
+            --expense-color: #EF4444; /* Red 500 */
+            --income-color: #10B981; /* Emerald 500 */
+            --future-color: #FBBF24; /* Amber 400 */
+        }
+
+        /* Light Theme Overrides (High Contrast) */
+        .light-theme {
+            --bg-color: #F8FAFC; /* Slate 50 */
+            --container-bg: #FFFFFF;
+            --text-color: #0F172A; /* Slate 900 */
+            --primary-accent: #3B82F6; /* Blue 500 */
+            --input-bg: #E2E8F0; /* Slate 200 */
+            --shadow-color: rgba(0, 0, 0, 0.1);
+
+            --expense-color: #DC2626; /* Red 600 */
+            --income-color: #059669; /* Emerald 600 */
+            --future-color: #F59E0B; /* Amber 500 */
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif; /* Clean Sans-serif font */
+            background-color: var(--bg-color); 
+            color: var(--text-color); 
+            transition: background-color 0.4s, color 0.4s;
+        }
+        
+        /* Modern Card/Container Style */
+        .modern-box {
+            background-color: var(--container-bg);
+            border-radius: 12px;
+            box-shadow: 0 10px 15px -3px var(--shadow-color), 0 4px 6px -2px var(--shadow-color);
+            transition: background-color 0.3s, box-shadow 0.3s;
+        }
+
+        /* Input and Select Style */
+        .modern-input {
+            background-color: var(--input-bg);
+            border: 1px solid var(--input-bg);
+            color: var(--text-color);
+            border-radius: 8px;
+            padding: 10px 14px;
+            transition: all 0.2s ease;
+        }
+        .modern-input:focus {
+            outline: none;
+            border-color: var(--primary-accent);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.5); /* Focus Ring effect */
+        }
+
+        /* Button Style */
+        .modern-button {
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-weight: 600;
+            transition: background-color 0.2s, transform 0.1s, box-shadow 0.2s;
+        }
+        .modern-button:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        /* Utility classes */
+        .text-income-color { color: var(--income-color); }
+        .text-expense-color { color: var(--expense-color); }
+        .text-future-color { color: var(--future-color); }
+        .text-primary-accent { color: var(--primary-accent); }
+
+        .bg-primary-accent { background-color: var(--primary-accent); }
+
+        .loading-screen {
+            min-height: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* Custom styles for tables */
+        .modern-table-header th {
+            color: var(--text-color);
+            background-color: var(--input-bg);
+            border-radius: 8px 8px 0 0;
+            font-weight: 600;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+        }
+        .modern-table-row:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+        .light-theme .modern-table-row:hover {
+             background-color: rgba(0, 0, 0, 0.03);
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 sm:p-8">
+    
+    <!-- AUTH SCREEN (Login/Register) -->
+    <div id="auth-screen" class="min-h-screen flex items-center justify-center p-4 hidden">
+        <div class="max-w-md w-full">
+             <h1 class="text-3xl sm:text-4xl font-extrabold text-primary-accent text-center mb-8">
+                Finance Manager (Local)
+            </h1>
+            <div id="auth-container" class="p-6 sm:p-8 modern-box">
+                
+                <!-- Login Form (Initial View) -->
+                <div id="login-view">
+                    <h2 class="text-2xl font-bold text-income-color mb-6 text-center">LOGIN</h2>
+                    <form id="login-form" class="space-y-4">
+                        <div>
+                            <label for="login-email" class="block text-sm font-medium mb-1">E-mail</label>
+                            <input type="email" id="login-email" placeholder="player@arcade.com" required
+                                class="w-full modern-input" />
+                        </div>
+                        <div>
+                            <label for="login-password" class="block text-sm font-medium mb-1">Senha</label>
+                            <input type="password" id="login-password" placeholder="********" required
+                                class="w-full modern-input" />
+                        </div>
+                        <button type="submit"
+                            class="w-full modern-button bg-income-color text-gray-900 shadow-lg">
+                            ENTRAR
+                        </button>
+                    </form>
+                    <p class="mt-4 text-center text-sm">
+                        Novo no sistema? 
+                        <button id="show-register-btn" class="text-primary-accent hover:underline font-semibold">Cadastre-se</button>
+                    </p>
+                </div>
+                
+                <!-- Register Form (Hidden Initially) -->
+                <div id="register-view" class="hidden">
+                    <h2 class="text-2xl font-bold text-future-color mb-6 text-center">CADASTRO</h2>
+                    <form id="register-form" class="space-y-4">
+                        <div>
+                            <label for="register-name" class="block text-sm font-medium mb-1">Nome</label>
+                            <input type="text" id="register-name" placeholder="Seu nome" required
+                                class="w-full modern-input" />
+                        </div>
+                        <div>
+                            <label for="register-email" class="block text-sm font-medium mb-1">E-mail</label>
+                            <input type="email" id="register-email" placeholder="seu.email@exemplo.com" required
+                                class="w-full modern-input" />
+                        </div>
+                        <div>
+                            <label for="register-password" class="block text-sm font-medium mb-1">Senha (Mín. 6)</label>
+                            <input type="password" id="register-password" placeholder="********" required
+                                class="w-full modern-input" />
+                        </div>
+                         <div>
+                            <label for="register-doc" class="block text-sm font-medium mb-1">CPF / CNPJ (Opcional)</label>
+                            <input type="text" id="register-doc" placeholder="Seu documento (opcional)"
+                                class="w-full modern-input" />
+                        </div>
+                        <button type="submit"
+                            class="w-full modern-button bg-future-color text-gray-900 shadow-lg">
+                            CADASTRAR
+                        </button>
+                    </form>
+                    <p class="mt-4 text-center text-sm">
+                        Já tem conta? 
+                        <button id="show-login-btn" class="text-primary-accent hover:underline font-semibold">Voltar ao Login</button>
+                    </p>
+                </div>
+                <div id="auth-error-message" class="text-expense-color font-semibold text-center mt-4 hidden"></div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="max-w-5xl mx-auto">
+        
+        <!-- Loading Screen -->
+        <div id="loading-screen" class="loading-screen">
+            <p class="text-xl font-semibold text-primary-accent animate-pulse">[ Carregando dados... ]</p>
+        </div>
+
+        <!-- APP SCREEN (Finance Manager Content) -->
+        <div id="app-screen" class="hidden">
+            <div class="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
+                <h1 class="text-3xl font-extrabold text-primary-accent">
+                    GERENCIADOR DE FINANÇAS (LOCAL)
+                </h1>
+                <div class="flex items-center space-x-3">
+                    <p id="user-display" class="text-sm font-medium text-gray-400">USER: [LOADING...]</p>
+                    <button id="theme-toggle-btn" 
+                        class="modern-button p-2 text-primary-accent hover:bg-gray-700/50" 
+                        aria-label="Alternar Tema">
+                        <!-- SVG Icon will be injected by JS based on theme -->
+                    </button>
+                    <button id="logout-btn" class="modern-button bg-expense-color text-white px-4 py-2 text-sm shadow-md">
+                        LOGOUT
+                    </button>
+                </div>
+            </div>
+
+            <!-- Summary Cards -->
+            <div id="summary-cards" class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
+                
+                <!-- Total Income Card -->
+                <div class="p-5 modern-box border-l-4" style="border-left-color: var(--income-color);">
+                    <p class="text-sm font-medium text-gray-400">Total de Receitas</p>
+                    <p id="total-income" class="text-2xl font-bold text-income-color mt-1">R$ 0,00</p>
+                </div>
+                
+                <!-- Total Expense Card -->
+                <div class="p-5 modern-box border-l-4" style="border-left-color: var(--expense-color);">
+                    <p class="text-sm font-medium text-gray-400">Total de Despesas</p>
+                    <p id="total-expense" class="text-2xl font-bold text-expense-color mt-1">R$ 0,00</p>
+                </div>
+                
+                <!-- Current Balance Card -->
+                <div class="p-5 modern-box border-l-4" style="border-left-color: var(--primary-accent);">
+                    <p class="text-sm font-medium text-gray-400">Saldo Atual</p>
+                    <p id="current-balance" class="text-2xl font-bold text-text-color mt-1">R$ 0,00</p>
+                </div>
+            </div>
+
+            <!-- Add Transaction Form -->
+            <div class="p-6 modern-box mb-8">
+                <h2 class="text-xl font-bold text-primary-accent mb-6">Nova Transação (Realizada)</h2>
+                <form id="transaction-form" class="space-y-4">
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                        <!-- Type (Tipo) -->
+                        <div>
+                            <label for="type" class="block text-sm font-medium mb-1">Tipo</label>
+                            <select id="type" required
+                                class="w-full modern-input">
+                                <option value="income">RECEITA (+)</option>
+                                <option value="expense">DESPESA (-)</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Payment Method (Método de Pagamento) -->
+                        <div>
+                            <label for="payment-method" class="block text-sm font-medium mb-1">Método</label>
+                            <select id="payment-method" required
+                                class="w-full modern-input">
+                                <option value="Dinheiro">Dinheiro</option>
+                                <option value="Pix">Pix</option>
+                                <option value="Cartao_Debito">Cartão Débito</option>
+                                <option value="Cartao_Credito">Cartão Crédito</option>
+                                <option value="Outros">Outros</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Value (Valor) -->
+                        <div>
+                            <label for="value" class="block text-sm font-medium mb-1">Valor (R$)</label>
+                            <input type="number" id="value" step="0.01" min="0.01" placeholder="0.00" required
+                                class="w-full modern-input" />
+                        </div>
+                        
+                         <!-- Submit Button -->
+                        <div class="flex items-end">
+                             <button type="submit"
+                                class="w-full modern-button bg-primary-accent text-white shadow-lg h-[42px] mt-6 sm:mt-0">
+                                ADICIONAR
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Description -->
+                    <div>
+                        <label for="description" class="block text-sm font-medium mb-1">Descrição</label>
+                        <input type="text" id="description" placeholder="Ex: Salário, Aluguel, Supermercado" required
+                            class="w-full modern-input" />
+                    </div>
+                   
+
+                    <div id="error-message" class="text-expense-color font-semibold hidden"></div>
+                </form>
+            </div>
+
+            <!-- Transaction Lists Container (Tabbed) -->
+            <div class="modern-box">
+                
+                <!-- Tab Navigation -->
+                <div class="flex border-b border-gray-600">
+                    <button data-tab="income-tab" class="tab-button flex-shrink-0 py-3 px-6 border-b-2 text-income-color border-income-color font-bold transition duration-150 ease-in-out">
+                        RECEITAS
+                    </button>
+                    <button data-tab="expense-tab" class="tab-button flex-shrink-0 py-3 px-6 font-medium border-b-2 border-transparent text-gray-400 hover:text-expense-color transition duration-150 ease-in-out">
+                        DESPESAS
+                    </button>
+                    <button data-tab="future-expense-tab" class="tab-button flex-shrink-0 py-3 px-6 font-medium border-b-2 border-transparent text-gray-400 hover:text-future-color transition duration-150 ease-in-out">
+                        PLANEJAMENTO FUTURO
+                    </button>
+                </div>
+
+                <!-- 1. Income List Tab Content -->
+                <div id="income-tab" class="tab-content p-6">
+                    <div class="overflow-x-auto rounded-lg">
+                        <table class="min-w-full divide-y divide-gray-700">
+                            <thead class="modern-table-header">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left">DESCRIÇÃO</th>
+                                    <th scope="col" class="px-6 py-3 text-left">MÉTODO</th>
+                                    <th scope="col" class="px-6 py-3 text-right">VALOR</th>
+                                    <th scope="col" class="px-6 py-3 text-right">AÇÃO</th>
+                                </tr>
+                            </thead>
+                            <tbody id="income-transactions-list" class="divide-y divide-gray-700 text-sm">
+                                <!-- Income Transactions will be injected here by JavaScript -->
+                            </tbody>
+                        </table>
+                        <p id="no-income-transactions" class="text-gray-400 text-center py-6 hidden">Nenhuma Receita Registrada.</p>
+                    </div>
+                </div>
+
+                <!-- 2. Expense List Tab Content -->
+                <div id="expense-tab" class="tab-content hidden p-6">
+                    <div class="overflow-x-auto rounded-lg">
+                        <table class="min-w-full divide-y divide-gray-700">
+                            <thead class="modern-table-header">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left">DESCRIÇÃO</th>
+                                    <th scope="col" class="px-6 py-3 text-left">MÉTODO</th>
+                                    <th scope="col" class="px-6 py-3 text-right">VALOR</th>
+                                    <th scope="col" class="px-6 py-3 text-right">AÇÃO</th>
+                                </tr>
+                            </thead>
+                            <tbody id="expense-transactions-list" class="divide-y divide-gray-700 text-sm">
+                                <!-- Expense Transactions will be injected here by JavaScript -->
+                            </tbody>
+                        </table>
+                        <p id="no-expense-transactions" class="text-gray-400 text-center py-6 hidden">Nenhuma Despesa Registrada.</p>
+                    </div>
+                </div>
+                
+                <!-- 3. Future Expense List/Form Tab Content -->
+                <div id="future-expense-tab" class="tab-content hidden p-6">
+                    <h3 class="text-xl font-bold text-future-color mb-4">Planear Nova Despesa</h3>
+                    
+                    <!-- Future Expense Form -->
+                    <form id="future-expense-form" class="space-y-4 p-4 modern-box mb-8 border-2 border-dashed" style="border-color: var(--future-color); background-color: rgba(255, 255, 255, 0.05);">
+                        <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                            <div class="sm:col-span-2">
+                                <label for="future-description" class="block text-sm font-medium mb-1">Descrição</label>
+                                <input type="text" id="future-description" placeholder="Ex: Aluguel mensal, Próximo IPVA" required
+                                    class="w-full modern-input" />
+                            </div>
+                            <div>
+                                <label for="future-value" class="block text-sm font-medium mb-1">Valor (R$)</label>
+                                <input type="number" id="future-value" step="0.01" min="0.01" placeholder="0.00" required
+                                    class="w-full modern-input" />
+                            </div>
+                            <div>
+                                <label for="future-due-date" class="block text-sm font-medium mb-1">Data Prevista</label>
+                                <input type="date" id="future-due-date" required
+                                    class="w-full modern-input" />
+                            </div>
+                        </div>
+                        <button type="submit"
+                            class="w-full modern-button bg-future-color text-gray-900 shadow-lg">
+                            SALVAR PLANEJAMENTO
+                        </button>
+                        <div id="future-error-message" class="text-expense-color font-semibold hidden"></div>
+                    </form>
+
+                    <h3 class="text-xl font-bold text-primary-accent mb-4 mt-8">Despesas Futuras Planejadas</h3>
+                    
+                    <div class="overflow-x-auto rounded-lg">
+                        <table class="min-w-full divide-y divide-gray-700">
+                            <thead class="modern-table-header">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left">DESCRIÇÃO</th>
+                                    <th scope="col" class="px-6 py-3 text-left">DATA</th>
+                                    <th scope="col" class="px-6 py-3 text-right">VALOR</th>
+                                    <th scope="col" class="px-6 py-3 text-right">AÇÃO</th>
+                                </tr>
+                            </thead>
+                            <tbody id="future-expense-transactions-list" class="divide-y divide-gray-700 text-sm">
+                                <!-- Future Expenses will be injected here by JavaScript -->
+                            </tbody>
+                        </table>
+                        <p id="no-future-transactions" class="text-gray-400 text-center py-6 hidden">Nenhuma Despesa Futura Registrada.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+
+    <!-- Script de lógica de aplicação com Local Storage -->
+    <script type="text/javascript">
+        
+        // --- CONSTANTS FOR LOCAL STORAGE ---
+        const REALIZED_KEY = 'pixelFinanceRealized';
+        const FUTURE_KEY = 'pixelFinanceFuture';
+        const USER_KEY = 'pixelFinanceUser'; // Stores {id, name, email, password}
+        
+        let currentUserData = null;
+
+        // Referências DOM para Autenticação
+        const authScreen = document.getElementById('auth-screen');
+        const appScreen = document.getElementById('app-screen');
+        const loadingScreen = document.getElementById('loading-screen');
+        const loginView = document.getElementById('login-view');
+        const registerView = document.getElementById('register-view');
+        const authErrorMessageEl = document.getElementById('auth-error-message');
+        const userDisplayEl = document.getElementById('user-display');
+        const themeToggleBtn = document.getElementById('theme-toggle-btn');
+        
+        // Referências DOM para Finanças
+        const form = document.getElementById('transaction-form');
+        const futureExpenseForm = document.getElementById('future-expense-form');
+        const incomeTransactionsList = document.getElementById('income-transactions-list');
+        const expenseTransactionsList = document.getElementById('expense-transactions-list');
+        const futureExpenseList = document.getElementById('future-expense-transactions-list');
+        const noIncomeTransactionsEl = document.getElementById('no-income-transactions');
+        const noExpenseTransactionsEl = document.getElementById('no-expense-transactions');
+        const noFutureTransactionsEl = document.getElementById('no-future-transactions');
+        const errorMessageEl = document.getElementById('error-message');
+        const futureErrorMessageEl = document.getElementById('future-error-message');
+        const totalIncomeEl = document.getElementById('total-income');
+        const totalExpenseEl = document.getElementById('total-expense');
+        const currentBalanceEl = document.getElementById('current-balance');
+        const tabButtons = document.querySelectorAll('.tab-button');
+
+
+        // --- UTILS: LOCAL STORAGE HANDLERS (UNMODIFIED LOGIC) ---
+        
+        /** Carrega dados do localStorage ou retorna um array vazio. */
+        const loadData = (key) => {
+            try {
+                const data = localStorage.getItem(key);
+                return data ? JSON.parse(data) : [];
+            } catch (e) {
+                console.error(`Error loading data from ${key}:`, e);
+                return [];
+            }
+        };
+
+        /** Salva dados no localStorage. */
+        const saveData = (key, data) => {
+            try {
+                localStorage.setItem(key, JSON.stringify(data));
+            } catch (e) {
+                console.error(`Error saving data to ${key}:`, e);
+            }
+        };
+
+        // --- THEME MANAGEMENT (Slightly modified icons/colors) ---
+
+        const LIGHT_THEME_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sun"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>`;
+        const DARK_THEME_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-moon"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>`;
+
+        const applyTheme = (isLight) => {
+            if (isLight) {
+                document.body.classList.add('light-theme');
+                themeToggleBtn.innerHTML = DARK_THEME_ICON;
+                themeToggleBtn.classList.add('text-primary-accent', 'hover:bg-gray-200');
+                themeToggleBtn.classList.remove('text-gray-100', 'hover:bg-gray-700/50');
+            } else {
+                document.body.classList.remove('light-theme');
+                themeToggleBtn.innerHTML = LIGHT_THEME_ICON;
+                themeToggleBtn.classList.add('text-gray-100', 'hover:bg-gray-700/50');
+                themeToggleBtn.classList.remove('text-primary-accent', 'hover:bg-gray-200');
+            }
+        };
+
+        const toggleTheme = () => {
+            const isLight = document.body.classList.contains('light-theme');
+            localStorage.setItem('theme', isLight ? 'dark' : 'light');
+            applyTheme(!isLight);
+        };
+        
+        const initializeTheme = () => {
+            const savedTheme = localStorage.getItem('theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+            // Default to Dark Mode for the modern theme
+            const defaultIsLight = (savedTheme === 'light') || (!savedTheme && !prefersDark);
+
+            applyTheme(defaultIsLight);
+
+            themeToggleBtn.addEventListener('click', toggleTheme);
+        };
+
+        // --- UI/VIEW MANAGEMENT (UNMODIFIED LOGIC) ---
+
+        const showLoadingScreen = () => {
+            loadingScreen.classList.remove('hidden');
+            authScreen.classList.add('hidden');
+            appScreen.classList.add('hidden');
+        };
+
+        const showAuthScreen = () => {
+            loadingScreen.classList.add('hidden');
+            authScreen.classList.remove('hidden');
+            appScreen.classList.add('hidden');
+        };
+
+        const showAppScreen = () => {
+            loadingScreen.classList.add('hidden');
+            authScreen.classList.add('hidden');
+            appScreen.classList.remove('hidden');
+        };
+        
+        const resetAuthForms = () => {
+            document.getElementById('login-form').reset();
+            document.getElementById('register-form').reset();
+            authErrorMessageEl.classList.add('hidden');
+        };
+
+        const toggleAuthView = (view) => {
+            resetAuthForms();
+            if (view === 'register') {
+                loginView.classList.add('hidden');
+                registerView.classList.remove('hidden');
+            } else {
+                loginView.classList.remove('hidden');
+                registerView.classList.add('hidden');
+            }
+        };
+        
+        // --- UTILS & FORMATTING (UNMODIFIED LOGIC) ---
+
+        const formatCurrency = (value) => {
+            return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+        };
+
+        const formatDate = (dateString) => {
+            if (!dateString) return 'N/A';
+            // Assumes YYYY-MM-DD
+            const parts = dateString.split('-');
+            if (parts.length === 3) {
+                return `${parts[2]}/${parts[1]}/${parts[0]}`;
+            }
+            return dateString;
+        };
+
+        // --- LOCAL AUTH HANDLERS (UNMODIFIED LOGIC) ---
+        
+        const handleLogin = (e) => {
+            e.preventDefault();
+            authErrorMessageEl.classList.add('hidden');
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            
+            // Simulação de login: Verifica se existe um usuário cadastrado com email e senha
+            const users = loadData(USER_KEY);
+            const user = users.find(u => u.email === email && u.password === password);
+
+            if (user) {
+                currentUserData = user;
+                initApp(); // Redireciona para o app
+            } else {
+                authErrorMessageEl.textContent = "Email ou senha inválidos. Tente novamente ou cadastre-se.";
+                authErrorMessageEl.classList.remove('hidden');
+            }
+        };
+
+        const handleRegister = (e) => {
+            e.preventDefault();
+            authErrorMessageEl.classList.add('hidden');
+            
+            const name = document.getElementById('register-name').value.trim();
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+            const docNumber = document.getElementById('register-doc').value.trim();
+
+            if (password.length < 6) {
+                authErrorMessageEl.textContent = "A senha deve ter pelo menos 6 caracteres.";
+                authErrorMessageEl.classList.remove('hidden');
+                return;
+            }
+            
+            let users = loadData(USER_KEY);
+            if (users.find(u => u.email === email)) {
+                authErrorMessageEl.textContent = "Este email já está em uso.";
+                authErrorMessageEl.classList.remove('hidden');
+                return;
+            }
+
+            // Cria novo usuário
+            const newUser = {
+                id: Date.now().toString(), // Simula UID
+                name: name,
+                email: email,
+                password: password, 
+                docNumber: docNumber,
+                createdAt: Date.now()
+            };
+            
+            saveData(USER_KEY, [newUser]); 
+            currentUserData = newUser;
+            initApp();
+        };
+
+        const handleLogout = () => {
+            // Limpa o estado do usuário
+            currentUserData = null;
+            
+            // Volta para a tela de autenticação
+            showAuthScreen();
+        };
+
+        // --- CRUD OPERATIONS (Local Storage) (UNMODIFIED LOGIC) ---
+
+        const loadAndRenderTransactions = () => {
+            if (!currentUserData) return;
+            
+            // 1. Load REALIZED Transactions
+            const realizedTransactions = loadData(REALIZED_KEY);
+            realizedTransactions.sort((a, b) => b.createdAt - a.createdAt);
+            renderTransactions(realizedTransactions);
+            
+            // 2. Load FUTURE Expenses
+            const futureExpenses = loadData(FUTURE_KEY);
+            futureExpenses.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+            renderFutureExpenses(futureExpenses);
+        };
+
+        const addTransaction = (e) => {
+            e.preventDefault();
+            errorMessageEl.classList.add('hidden');
+            
+            if (!currentUserData) return;
+
+            const type = document.getElementById('type').value;
+            const description = document.getElementById('description').value.trim();
+            const paymentMethod = document.getElementById('payment-method').value;
+            let value = parseFloat(document.getElementById('value').value);
+
+            if (!description || isNaN(value) || value <= 0) {
+                errorMessageEl.textContent = "Por favor, preencha a descrição e o valor corretamente.";
+                errorMessageEl.classList.remove('hidden');
+                return;
+            }
+
+            value = Math.round(value * 100) / 100;
+
+            const newTransaction = {
+                id: Date.now().toString(), // Local unique ID
+                type, 
+                description,
+                paymentMethod,
+                value: value, 
+                createdAt: Date.now(),
+            };
+
+            try {
+                const transactions = loadData(REALIZED_KEY);
+                transactions.push(newTransaction);
+                saveData(REALIZED_KEY, transactions);
+                
+                form.reset();
+                loadAndRenderTransactions(); // Re-render everything
+                switchTab(type === 'income' ? 'income-tab' : 'expense-tab');
+            } catch (error) {
+                console.error("Erro ao adicionar transação:", error);
+                errorMessageEl.textContent = "Falha ao salvar transação localmente.";
+                errorMessageEl.classList.remove('hidden');
+            }
+        };
+
+        const addFutureExpense = (e) => {
+            e.preventDefault();
+            futureErrorMessageEl.classList.add('hidden');
+            
+            if (!currentUserData) return;
+
+            const description = document.getElementById('future-description').value.trim();
+            const dueDate = document.getElementById('future-due-date').value;
+            let value = parseFloat(document.getElementById('future-value').value);
+
+            if (!description || !dueDate || isNaN(value) || value <= 0) {
+                futureErrorMessageEl.textContent = "Por favor, preencha a descrição, valor e data prevista corretamente.";
+                futureErrorMessageEl.classList.remove('hidden');
+                return;
+            }
+
+            value = Math.round(value * 100) / 100;
+
+            const newFutureExpense = {
+                id: Date.now().toString(), // Local unique ID
+                description,
+                value: value,
+                dueDate: dueDate, // YYYY-MM-DD string
+                createdAt: Date.now(),
+            };
+
+            try {
+                const expenses = loadData(FUTURE_KEY);
+                expenses.push(newFutureExpense);
+                saveData(FUTURE_KEY, expenses);
+                
+                futureExpenseForm.reset();
+                loadAndRenderTransactions(); // Re-render everything
+                switchTab('future-expense-tab'); 
+            } catch (error) {
+                console.error("Erro ao adicionar despesa futura:", error);
+                futureErrorMessageEl.textContent = "Falha ao salvar despesa futura localmente.";
+                futureErrorMessageEl.classList.remove('hidden');
+            }
+        };
+
+        const deleteTransaction = (id, type) => {
+            if (!currentUserData) return;
+
+            const key = type === 'realized' ? REALIZED_KEY : FUTURE_KEY;
+            let data = loadData(key);
+            
+            const initialLength = data.length;
+            data = data.filter(item => item.id !== id);
+
+            if (data.length < initialLength) {
+                saveData(key, data);
+                console.log(`[LOG] Item excluído (ID: ${id}, Tipo: ${type}).`);
+                loadAndRenderTransactions(); // Re-render to update lists and totals
+            }
+        };
+
+        // --- RENDERING LOGIC (Updated to modern styles) ---
+
+        const createTransactionRow = (transaction) => {
+            const value = parseFloat(transaction.value);
+            const valueColorClass = transaction.type === 'income' ? 'text-income-color' : 'text-expense-color';
+
+            return `
+                <tr class="modern-table-row">
+                    <td class="px-6 py-3 whitespace-nowrap">${transaction.description}</td>
+                    <td class="px-6 py-3 whitespace-nowrap text-gray-400">${transaction.paymentMethod || 'N/A'}</td>
+                    <td class="px-6 py-3 whitespace-nowrap font-semibold text-right ${valueColorClass}">
+                        ${formatCurrency(value)}
+                    </td>
+                    <td class="px-6 py-3 whitespace-nowrap text-right">
+                        <button data-id="${transaction.id}" data-type="realized" class="delete-btn text-red-500 hover:text-red-400 p-1 text-sm font-medium transition duration-150 ease-in-out" aria-label="Excluir Transação">
+                            Excluir
+                        </button>
+                    </td>
+                </tr>
+            `;
+        };
+
+        const renderTransactions = (transactions) => {
+            incomeTransactionsList.innerHTML = '';
+            expenseTransactionsList.innerHTML = '';
+
+            let totalIncome = 0;
+            let totalExpense = 0;
+            
+            let incomeHtml = '';
+            let expenseHtml = '';
+
+            transactions.forEach(transaction => {
+                const value = parseFloat(transaction.value);
+                
+                if (transaction.type === 'income') {
+                    totalIncome += value;
+                    incomeHtml += createTransactionRow(transaction);
+                } else {
+                    totalExpense += value;
+                    expenseHtml += createTransactionRow(transaction);
+                }
+            });
+
+            incomeTransactionsList.innerHTML = incomeHtml;
+            expenseTransactionsList.innerHTML = expenseHtml;
+
+            noIncomeTransactionsEl.classList.toggle('hidden', totalIncome !== 0);
+            noExpenseTransactionsEl.classList.toggle('hidden', totalExpense !== 0);
+
+            const currentBalance = totalIncome - totalExpense;
+            
+            totalIncomeEl.textContent = formatCurrency(totalIncome);
+            totalExpenseEl.textContent = formatCurrency(totalExpense);
+            currentBalanceEl.textContent = formatCurrency(currentBalance);
+            
+            // Adjust balance color based on value
+            currentBalanceEl.classList.remove('text-income-color', 'text-expense-color', 'text-text-color');
+            if (currentBalance > 0) {
+                currentBalanceEl.classList.add('text-income-color');
+            } else if (currentBalance < 0) {
+                currentBalanceEl.classList.add('text-expense-color');
+            } else {
+                currentBalanceEl.classList.add('text-text-color');
+            }
+
+            attachDeleteListeners();
+        };
+        
+        const createFutureExpenseRow = (expense) => {
+            const value = parseFloat(expense.value);
+            const dueDate = formatDate(expense.dueDate);
+
+            return `
+                <tr class="modern-table-row">
+                    <td class="px-6 py-3 whitespace-nowrap">${expense.description}</td>
+                    <td class="px-6 py-3 whitespace-nowrap text-future-color font-medium">${dueDate}</td>
+                    <td class="px-6 py-3 whitespace-nowrap font-semibold text-future-color text-right">
+                        ${formatCurrency(value)}
+                    </td>
+                    <td class="px-6 py-3 whitespace-nowrap text-right">
+                        <button data-id="${expense.id}" data-type="future" class="delete-btn text-red-500 hover:text-red-400 p-1 text-sm font-medium transition duration-150 ease-in-out" aria-label="Excluir Despesa Futura">
+                            Excluir
+                        </button>
+                    </td>
+                </tr>
+            `;
+        };
+
+        const renderFutureExpenses = (expenses) => {
+            futureExpenseList.innerHTML = '';
+            
+            let futureHtml = '';
+            expenses.forEach(expense => {
+                futureHtml += createFutureExpenseRow(expense);
+            });
+
+            futureExpenseList.innerHTML = futureHtml;
+            noFutureTransactionsEl.classList.toggle('hidden', expenses.length > 0);
+            
+            attachDeleteListeners();
+        };
+
+        // --- GENERAL LOGIC (Tabs, Deletion, Initialization) (UNMODIFIED LOGIC) ---
+        
+        const switchTab = (activeTabId) => {
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('font-bold', 'text-income-color', 'border-income-color', 'text-expense-color', 'border-expense-color', 'text-future-color', 'border-future-color');
+                button.classList.add('font-medium', 'text-gray-400', 'border-transparent');
+            });
+
+            document.getElementById(activeTabId).classList.remove('hidden');
+
+            const activeButton = document.querySelector(`[data-tab="${activeTabId}"]`);
+            activeButton.classList.remove('font-medium', 'text-gray-400', 'border-transparent');
+            activeButton.classList.add('font-bold');
+
+            if (activeTabId === 'income-tab') {
+                activeButton.classList.add('text-income-color', 'border-income-color');
+            } else if (activeTabId === 'expense-tab') {
+                activeButton.classList.add('text-expense-color', 'border-expense-color');
+            } else if (activeTabId === 'future-expense-tab') {
+                activeButton.classList.add('text-future-color', 'border-future-color');
+            }
+        };
+
+        const setupTabs = () => {
+            tabButtons.forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const tabId = e.currentTarget.dataset.tab;
+                    switchTab(tabId);
+                });
+            });
+            switchTab('income-tab');
+        };
+        
+        const attachDeleteListeners = () => {
+            document.querySelectorAll('.delete-btn').forEach(button => {
+                // Clone/replace to re-attach fresh listeners
+                const oldButton = button.cloneNode(true);
+                button.parentNode.replaceChild(oldButton, button);
+
+                oldButton.addEventListener('click', (e) => {
+                    const id = e.currentTarget.dataset.id;
+                    const type = e.currentTarget.dataset.type;
+                    deleteTransaction(id, type);
+                });
+            });
+        };
+
+        // --- AUTH STATE CHECKER (UNMODIFIED LOGIC) ---
+        
+        const checkAuthState = () => {
+            const users = loadData(USER_KEY);
+            // Assumimos que o primeiro (e único, neste cenário simplificado) usuário cadastrado está "logado"
+            if (users && users.length > 0) {
+                currentUserData = users[0];
+                initApp();
+            } else {
+                showAuthScreen();
+            }
+        };
+
+        // --- APP INITIALIZATION (UNMODIFIED LOGIC) ---
+
+        const initApp = () => {
+             if (currentUserData) {
+                userDisplayEl.textContent = `Usuário: ${currentUserData.email}`;
+                loadAndRenderTransactions();
+                showAppScreen();
+                setupTabs();
+            }
+        }
+        
+        // --- Main Execution (UNMODIFIED LOGIC) ---
+        
+        window.onload = () => {
+            initializeTheme(); // Initialize theme first
+            showLoadingScreen();
+            
+            // Inicia a checagem de autenticação local
+            checkAuthState();
+
+            // Attach Auth Handlers
+            document.getElementById('login-form').addEventListener('submit', handleLogin);
+            document.getElementById('register-form').addEventListener('submit', handleRegister);
+            document.getElementById('logout-btn').addEventListener('click', handleLogout);
+            
+            // Attach Auth View Toggles
+            document.getElementById('show-register-btn').addEventListener('click', () => toggleAuthView('register'));
+            document.getElementById('show-login-btn').addEventListener('click', () => toggleAuthView('login'));
+
+            // Attach Finance Handlers
+            form.addEventListener('submit', addTransaction);
+            futureExpenseForm.addEventListener('submit', addFutureExpense);
+        };
+    </script>
+</body>
+</html>

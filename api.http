@@ -20,4 +20,4 @@ Content-Type: application/json
 
 ### 
 
-GET http://localhost:8080/notifications/user/f88583a6-74a5-4e16-be9f-bb9e06120337
+GET http://localhost:8080/notifications/user/

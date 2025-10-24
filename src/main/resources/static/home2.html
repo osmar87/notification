@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciador de Finanças Pessoais</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Pixel Fonts (Press Start 2P for headers, VT323 for body) -->
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+    <style>
+        /* Base Dark Theme Variables */
+        :root {
+            --bg-color: #222831;
+            --container-bg: #393E46;
+            --dark-shadow: #1A1A1A;
+            --text-color: #EEEEEE; /* light-text */
+            --primary-color: #76ABAE; /* Teal for main accents */
+            --table-header-bg: #505763;
+            --input-bg: #505763;
+            
+            --expense-color: #FF0000; /* Bright Red */
+            --income-color: #00FF00; /* Neon Green */
+            --future-color: #FFCC00; /* Arcade Yellow/Orange */
+
+            --pixel-border-width: 4px;
+        }
+
+        /* Light Theme Overrides */
+        .light-theme {
+            --bg-color: #F0F0F0;
+            --container-bg: #FFFFFF;
+            --dark-shadow: #AAAAAA;
+            --text-color: #333333; /* Dark Text */
+            --primary-color: #20A4F3; /* Bright Blue */
+            --table-header-bg: #E0E0E0;
+            --input-bg: #F9F9F9;
+
+            --expense-color: #CC0000; /* Darker Red */
+            --income-color: #008000; /* Darker Green */
+            --future-color: #FFA500; /* Bright Orange */
+        }
+        
+        body {
+            font-family: 'VT323', monospace; /* Default text font */
+            background-color: var(--bg-color); /* Apply theme variable */
+            color: var(--text-color); /* Apply theme variable */
+            transition: background-color 0.3s, color 0.3s;
+        }
+        
+        /* Pseudo-3D effect for containers, cards, and forms */
+        .pixel-box {
+            border: var(--pixel-border-width) solid var(--dark-shadow);
+            box-shadow: 6px 6px 0 0 var(--dark-shadow);
+            background-color: var(--container-bg);
+            border-radius: 0; /* Sharp corners */
+            transition: background-color 0.3s, box-shadow 0.3s, border-color 0.3s;
+        }
+
+        /* Header style */
+        .pixel-header {
+            font-family: 'Press Start 2P', cursive;
+            text-shadow: 2px 2px var(--dark-shadow);
+            transition: text-shadow 0.3s;
+        }
+        
+        /* Inputs, Selects, Buttons */
+        .pixel-input {
+            background-color: var(--input-bg);
+            border: 2px solid var(--dark-shadow);
+            color: var(--text-color);
+            border-radius: 0;
+            padding: 8px 10px;
+            transition: background-color 0.3s, border-color 0.3s, color 0.3s;
+        }
+        .pixel-input:focus {
+            outline: 2px solid var(--income-color); /* Focus effect */
+            box-shadow: none;
+            border-color: var(--income-color);
+        }
+        .light-theme .pixel-input:focus {
+            outline: 2px solid var(--primary-color); 
+            border-color: var(--primary-color);
+        }
+
+        .pixel-button {
+            border: 3px solid var(--dark-shadow);
+            border-radius: 0;
+            box-shadow: 4px 4px 0 0 var(--dark-shadow);
+            transition: all 0.1s ease-in-out;
+            font-family: 'Press Start 2P', cursive;
+            letter-spacing: 1px;
+            padding: 10px;
+            font-size: 14px; 
+        }
+        .pixel-button:active {
+            transform: translate(3px, 3px);
+            box-shadow: 1px 1px 0 0 var(--dark-shadow);
+        }
+
+        /* Table styles */
+        .pixel-table-header th {
+            background-color: var(--table-header-bg);
+            color: var(--text-color);
+            font-family: 'Press Start 2P', cursive;
+            font-size: 10px;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .pixel-table-row:hover {
+            background-color: rgba(0, 0, 0, 0.1);
+        }
+        .light-theme .pixel-table-row:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+        
+        /* Utility classes for dynamic tab coloring and text */
+        .text-primary-color { color: var(--primary-color); }
+        .text-income-color { color: var(--income-color); }
+        .text-expense-color { color: var(--expense-color); }
+        .text-future-color { color: var(--future-color); }
+
+        .border-income-color { border-color: var(--income-color) !important; }
+        .border-expense-color { border-color: var(--expense-color) !important; }
+        .border-future-color { border-color: var(--future-color) !important; }
+
+        .bg-primary-color { background-color: var(--primary-color); }
+        .bg-income-color { background-color: var(--income-color); }
+        .bg-expense-color { background-color: var(--expense-color); }
+        .bg-future-color { background-color: var(--future-color); }
+        
+        .text-dark-shadow { color: var(--dark-shadow); }
+
+        .loading-screen {
+            min-height: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 sm:p-8">
+    
+    <!-- AUTH SCREEN (Login/Register) -->
+    <div id="auth-screen" class="min-h-screen flex items-center justify-center p-4 hidden">
+        <div class="max-w-md w-full">
+             <h1 class="text-3xl sm:text-4xl pixel-header text-primary-color text-center mb-8">
+                FINANCE MANAGER V1.0 (LOCAL)
+            </h1>
+            <div id="auth-container" class="p-6 sm:p-8 pixel-box">
+                <!-- Login Form (Initial View) -->
+                <div id="login-view">
+                    <h2 class="text-2xl pixel-header text-income-color mb-6 text-center">LOGIN (PLAYER START)</h2>
+                    <form id="login-form" class="space-y-4">
+                        <div>
+                            <label for="login-email" class="block text-sm font-medium mb-1">EMAIL</label>
+                            <input type="email" id="login-email" placeholder="player@arcade.com" required
+                                class="w-full pixel-input" />
+                        </div>
+                        <div>
+                            <label for="login-password" class="block text-sm font-medium mb-1">SENHA</label>
+                            <input type="password" id="login-password" placeholder="********" required
+                                class="w-full pixel-input" />
+                        </div>
+                        <button type="submit"
+                            class="w-full bg-income-color text-dark-shadow pixel-button hover:bg-income-color hover:opacity-90">
+                            ENTRAR (LOG IN)
+                        </button>
+                    </form>
+                    <p class="mt-4 text-center text-sm">
+                        Novo no jogo? 
+                        <button id="show-register-btn" class="text-primary-color hover:opacity-80 font-bold">[CRIAR CONTA]</button>
+                    </p>
+                </div>
+                
+                <!-- Register Form (Hidden Initially) -->
+                <div id="register-view" class="hidden">
+                    <h2 class="text-2xl pixel-header text-future-color mb-6 text-center">CADASTRO (NEW GAME)</h2>
+                    <form id="register-form" class="space-y-4">
+                        <div>
+                            <label for="register-name" class="block text-sm font-medium mb-1">NOME</label>
+                            <input type="text" id="register-name" placeholder="Player 1" required
+                                class="w-full pixel-input" />
+                        </div>
+                        <div>
+                            <label for="register-email" class="block text-sm font-medium mb-1">EMAIL</label>
+                            <input type="email" id="register-email" placeholder="player@arcade.com" required
+                                class="w-full pixel-input" />
+                        </div>
+                        <div>
+                            <label for="register-password" class="block text-sm font-medium mb-1">SENHA (MÍN 6 CARACTERES)</label>
+                            <input type="password" id="register-password" placeholder="********" required
+                                class="w-full pixel-input" />
+                        </div>
+                         <div>
+                            <label for="register-doc" class="block text-sm font-medium mb-1">CPF / CNPJ (Opcional)</label>
+                            <input type="text" id="register-doc" placeholder="123.456.789-00 ou 00.000.000/0000-00"
+                                class="w-full pixel-input" />
+                        </div>
+                        <button type="submit"
+                            class="w-full bg-future-color text-dark-shadow pixel-button hover:bg-future-color hover:opacity-90">
+                            CADASTRAR (SAVE)
+                        </button>
+                    </form>
+                    <p class="mt-4 text-center text-sm">
+                        Já tem conta? 
+                        <button id="show-login-btn" class="text-primary-color hover:opacity-80 font-bold">[VOLTAR AO LOGIN]</button>
+                    </p>
+                </div>
+                <div id="auth-error-message" class="text-expense-color font-bold text-center mt-4 hidden"></div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="max-w-4xl mx-auto">
+        
+        <!-- Loading Screen -->
+        <div id="loading-screen" class="loading-screen">
+            <p class="text-xl pixel-header text-primary-color animate-pulse">[LOADING DATA...]</p>
+        </div>
+
+        <!-- APP SCREEN (Finance Manager Content) -->
+        <div id="app-screen" class="hidden">
+            <div class="flex justify-between items-center mb-6">
+                <p id="user-display" class="text-lg text-primary-color pixel-header">USER: [LOADING...]</p>
+                <button id="theme-toggle-btn" 
+                    class="pixel-button bg-container-bg p-2 text-primary-color hover:opacity-80" 
+                    aria-label="Alternar Tema">
+                    <!-- SVG Icon will be injected by JS based on theme -->
+                </button>
+                <button id="logout-btn" class="bg-expense-color text-text-color pixel-button px-4 py-2 text-xs hover:bg-expense-color hover:opacity-90">
+                    LOGOUT
+                </button>
+            </div>
+
+            <!-- Summary Cards -->
+            <div id="summary-cards" class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+                <!-- Total Income Card -->
+                <div class="p-5 pixel-box card-border-income" style="border-top-color: var(--income-color);">
+                    <p class="text-sm font-medium text-gray-400">TOTAL DE RECEITAS</p>
+                    <p id="total-income" class="text-xl font-bold text-income-color mt-1">R$ 0,00</p>
+                </div>
+                <!-- Total Expense Card -->
+                <div class="p-5 pixel-box card-border-expense" style="border-top-color: var(--expense-color);">
+                    <p class="text-sm font-medium text-gray-400">TOTAL DE DESPESAS</p>
+                    <p id="total-expense" class="text-xl font-bold text-expense-color mt-1">R$ 0,00</p>
+                </div>
+                <!-- Current Balance Card -->
+                <div class="p-5 pixel-box card-border-primary" style="border-top-color: var(--primary-color);">
+                    <p class="text-sm font-medium text-gray-400">SALDO ATUAL</p>
+                    <p id="current-balance" class="text-xl font-bold text-text-color mt-1">R$ 0,00</p>
+                </div>
+            </div>
+
+            <!-- Add Transaction Form -->
+            <div class="p-6 sm:p-8 pixel-box mb-8">
+                <h2 class="text-xl pixel-header text-primary-color mb-6">ADICIONAR NOVA TRANSAÇÃO (REALIZADA)</h2>
+                <form id="transaction-form" class="space-y-4">
+                    
+                    <!-- ROW 1: Type and Payment Method -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Type (Tipo) -->
+                        <div>
+                            <label for="type" class="block text-sm font-medium mb-1">TIPO</label>
+                            <select id="type" required
+                                class="w-full pixel-input">
+                                <option value="income">RECEITA (ENTRADA)</option>
+                                <option value="expense">DESPESA (SAÍDA)</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Payment Method (Método de Pagamento) -->
+                        <div>
+                            <label for="payment-method" class="block text-sm font-medium mb-1">MÉTODO DE PAGAMENTO</label>
+                            <select id="payment-method" required
+                                class="w-full pixel-input">
+                                <option value="Dinheiro">DINHEIRO</option>
+                                <option value="Pix">PIX</option>
+                                <option value="Cartao_Debito">CARTÃO DÉBITO</option>
+                                <option value="Cartao_Credito">CARTÃO CRÉDITO</option>
+                                <option value="Outros">OUTROS</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- ROW 2: Description and Value -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <!-- Description (Descrição) - Takes 2/3 width on md+ -->
+                        <div class="md:col-span-2">
+                            <label for="description" class="block text-sm font-medium mb-1">DESCRIÇÃO</label>
+                            <input type="text" id="description" placeholder="Ex: SALÁRIO, ALUGUEL, SUPERMERCADO" required
+                                class="w-full pixel-input" />
+                        </div>
+
+                        <!-- Value (Valor) - Takes 1/3 width on md+ -->
+                        <div class="md:col-span-1">
+                            <label for="value" class="block text-sm font-medium mb-1">VALOR (R$)</label>
+                            <input type="number" id="value" step="0.01" min="0.01" placeholder="0.00" required
+                                class="w-full pixel-input" />
+                        </div>
+                    </div>
+                    
+                    <!-- ROW 3: Submit Button -->
+                    <div>
+                        <button type="submit"
+                            class="w-full bg-primary-color text-dark-shadow pixel-button hover:bg-primary-color hover:opacity-90">
+                            ADICIONAR (START!)
+                        </button>
+                    </div>
+
+                    <div id="error-message" class="text-expense-color font-bold hidden"></div>
+                </form>
+            </div>
+
+            <!-- Transaction Lists Container (Tabbed) -->
+            <div class="p-6 sm:p-8 pixel-box">
+                
+                <!-- Tab Navigation -->
+                <div class="flex border-b border-gray-600 mb-6 -mt-2 overflow-x-auto">
+                    <button data-tab="income-tab" class="tab-button flex-shrink-0 py-2 px-4 border-b-2 text-income-color border-income-color transition duration-150 ease-in-out">
+                        RECEITAS
+                    </button>
+                    <button data-tab="expense-tab" class="tab-button flex-shrink-0 py-2 px-4 font-medium border-b-2 border-transparent text-gray-400 hover:text-expense-color transition duration-150 ease-in-out">
+                        DESPESAS
+                    </button>
+                    <button data-tab="future-expense-tab" class="tab-button flex-shrink-0 py-2 px-4 font-medium border-b-2 border-transparent text-gray-400 hover:text-future-color transition duration-150 ease-in-out">
+                        FUTURE (PLAN)
+                    </button>
+                </div>
+
+                <!-- 1. Income List Tab Content -->
+                <div id="income-tab" class="tab-content">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-600">
+                            <thead class="pixel-table-header">
+                                <tr>
+                                    <th scope="col" class="px-3 py-3 text-left tracking-wider">DESCRIÇÃO</th>
+                                    <th scope="col" class="px-6 py-3 text-left tracking-wider">MÉTODO</th>
+                                    <th scope="col" class="px-6 py-3 text-right tracking-wider">VALOR</th>
+                                    <th scope="col" class="px-6 py-3 text-right tracking-wider">AÇÃO</th>
+                                </tr>
+                            </thead>
+                            <tbody id="income-transactions-list" class="divide-y divide-gray-600 text-sm">
+                                <!-- Income Transactions will be injected here by JavaScript -->
+                            </tbody>
+                        </table>
+                        <p id="no-income-transactions" class="text-gray-400 text-center py-4 hidden">NENHUMA RECEITA REGISTRADA.</p>
+                    </div>
+                </div>
+
+                <!-- 2. Expense List Tab Content -->
+                <div id="expense-tab" class="tab-content hidden">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-600">
+                            <thead class="pixel-table-header">
+                                <tr>
+                                    <th scope="col" class="px-3 py-3 text-left tracking-wider">DESCRIÇÃO</th>
+                                    <th scope="col" class="px-6 py-3 text-left tracking-wider">MÉTODO</th>
+                                    <th scope="col" class="px-6 py-3 text-right tracking-wider">VALOR</th>
+                                    <th scope="col" class="px-6 py-3 text-right tracking-wider">AÇÃO</th>
+                                </tr>
+                            </thead>
+                            <tbody id="expense-transactions-list" class="divide-y divide-gray-600 text-sm">
+                                <!-- Expense Transactions will be injected here by JavaScript -->
+                            </tbody>
+                        </table>
+                        <p id="no-expense-transactions" class="text-gray-400 text-center py-4 hidden">NENHUMA DESPESA REGISTRADA.</p>
+                    </div>
+                </div>
+                
+                <!-- 3. Future Expense List/Form Tab Content -->
+                <div id="future-expense-tab" class="tab-content hidden">
+                    <h3 class="text-xl pixel-header text-future-color mb-4">PLANEAR NOVA DESPESA FUTURA</h3>
+                    
+                    <!-- Future Expense Form -->
+                    <form id="future-expense-form" class="space-y-4 p-4 pixel-box mb-8 border-2" style="border-color: var(--future-color);">
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div>
+                                <label for="future-description" class="block text-sm font-medium mb-1">DESCRIÇÃO</label>
+                                <input type="text" id="future-description" placeholder="Ex: ALUGUEL MENSAL, PRÓXIMO IPVA" required
+                                    class="w-full pixel-input" />
+                            </div>
+                            <div>
+                                <label for="future-value" class="block text-sm font-medium mb-1">VALOR (R$)</label>
+                                <input type="number" id="future-value" step="0.01" min="0.01" placeholder="0.00" required
+                                    class="w-full pixel-input" />
+                            </div>
+                            <div>
+                                <label for="future-due-date" class="block text-sm font-medium mb-1">DATA PREVISTA</label>
+                                <input type="date" id="future-due-date" required
+                                    class="w-full pixel-input" />
+                            </div>
+                        </div>
+                        <button type="submit"
+                            class="w-full bg-future-color text-dark-shadow pixel-button hover:bg-future-color hover:opacity-90">
+                            SALVAR (SAVE GAME)
+                        </button>
+                        <div id="future-error-message" class="text-expense-color font-bold hidden"></div>
+                    </form>
+
+                    <h3 class="text-xl pixel-header text-primary-color mb-4 mt-8">DESPESAS FUTURAS PLANEJADAS</h3>
+                    
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-600">
+                            <thead class="pixel-table-header">
+                                <tr>
+                                    <th scope="col" class="px-3 py-3 text-left tracking-wider">DESCRIÇÃO</th>
+                                    <th scope="col" class="px-6 py-3 text-left tracking-wider">DATA</th>
+                                    <th scope="col" class="px-6 py-3 text-right tracking-wider">VALOR</th>
+                                    <th scope="col" class="px-6 py-3 text-right tracking-wider">AÇÃO</th>
+                                </tr>
+                            </thead>
+                            <tbody id="future-expense-transactions-list" class="divide-y divide-gray-600 text-sm">
+                                <!-- Future Expenses will be injected here by JavaScript -->
+                            </tbody>
+                        </table>
+                        <p id="no-future-transactions" class="text-gray-400 text-center py-4 hidden">NENHUMA DESPESA FUTURA REGISTRADA.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+
+    <!-- Script de lógica de aplicação com Local Storage -->
+    <script type="text/javascript">
+        
+        // --- CONSTANTS FOR LOCAL STORAGE ---
+        const REALIZED_KEY = 'pixelFinanceRealized';
+        const FUTURE_KEY = 'pixelFinanceFuture';
+        const USER_KEY = 'pixelFinanceUser'; // Stores {id, name, email, password}
+        
+        let currentUserData = null;
+
+        // Referências DOM para Autenticação
+        const authScreen = document.getElementById('auth-screen');
+        const appScreen = document.getElementById('app-screen');
+        const loadingScreen = document.getElementById('loading-screen');
+        const loginView = document.getElementById('login-view');
+        const registerView = document.getElementById('register-view');
+        const authErrorMessageEl = document.getElementById('auth-error-message');
+        const userDisplayEl = document.getElementById('user-display');
+        const themeToggleBtn = document.getElementById('theme-toggle-btn');
+        
+        // Referências DOM para Finanças
+        const form = document.getElementById('transaction-form');
+        const futureExpenseForm = document.getElementById('future-expense-form');
+        const incomeTransactionsList = document.getElementById('income-transactions-list');
+        const expenseTransactionsList = document.getElementById('expense-transactions-list');
+        const futureExpenseList = document.getElementById('future-expense-transactions-list');
+        const noIncomeTransactionsEl = document.getElementById('no-income-transactions');
+        const noExpenseTransactionsEl = document.getElementById('no-expense-transactions');
+        const noFutureTransactionsEl = document.getElementById('no-future-transactions');
+        const errorMessageEl = document.getElementById('error-message');
+        const futureErrorMessageEl = document.getElementById('future-error-message');
+        const totalIncomeEl = document.getElementById('total-income');
+        const totalExpenseEl = document.getElementById('total-expense');
+        const currentBalanceEl = document.getElementById('current-balance');
+        const tabButtons = document.querySelectorAll('.tab-button');
+
+
+        // --- UTILS: LOCAL STORAGE HANDLERS ---
+        
+        /** Carrega dados do localStorage ou retorna um array vazio. */
+        const loadData = (key) => {
+            try {
+                const data = localStorage.getItem(key);
+                return data ? JSON.parse(data) : [];
+            } catch (e) {
+                console.error(`Error loading data from ${key}:`, e);
+                return [];
+            }
+        };
+
+        /** Salva dados no localStorage. */
+        const saveData = (key, data) => {
+            try {
+                localStorage.setItem(key, JSON.stringify(data));
+            } catch (e) {
+                console.error(`Error saving data to ${key}:`, e);
+            }
+        };
+
+        // --- THEME MANAGEMENT (Unchanged) ---
+
+        const LIGHT_THEME_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sun"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>`;
+        const DARK_THEME_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-moon"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>`;
+
+        const applyTheme = (isLight) => {
+            if (isLight) {
+                document.body.classList.add('light-theme');
+                themeToggleBtn.innerHTML = DARK_THEME_ICON;
+                themeToggleBtn.classList.remove('text-primary-color');
+                themeToggleBtn.classList.add('text-dark-shadow');
+            } else {
+                document.body.classList.remove('light-theme');
+                themeToggleBtn.innerHTML = LIGHT_THEME_ICON;
+                themeToggleBtn.classList.remove('text-dark-shadow');
+                themeToggleBtn.classList.add('text-primary-color');
+            }
+        };
+
+        const toggleTheme = () => {
+            const isLight = document.body.classList.contains('light-theme');
+            localStorage.setItem('theme', isLight ? 'dark' : 'light');
+            applyTheme(!isLight);
+        };
+        
+        const initializeTheme = () => {
+            const savedTheme = localStorage.getItem('theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+            if (savedTheme === 'light') {
+                applyTheme(true);
+            } else if (savedTheme === 'dark') {
+                applyTheme(false);
+            } else if (prefersDark) {
+                applyTheme(false);
+            } else {
+                applyTheme(false); // Default to Dark
+            }
+
+            themeToggleBtn.addEventListener('click', toggleTheme);
+        };
+
+        // --- UI/VIEW MANAGEMENT (Unchanged) ---
+
+        const showLoadingScreen = () => {
+            loadingScreen.classList.remove('hidden');
+            authScreen.classList.add('hidden');
+            appScreen.classList.add('hidden');
+        };
+
+        const showAuthScreen = () => {
+            loadingScreen.classList.add('hidden');
+            authScreen.classList.remove('hidden');
+            appScreen.classList.add('hidden');
+        };
+
+        const showAppScreen = () => {
+            loadingScreen.classList.add('hidden');
+            authScreen.classList.add('hidden');
+            appScreen.classList.remove('hidden');
+        };
+        
+        const resetAuthForms = () => {
+            document.getElementById('login-form').reset();
+            document.getElementById('register-form').reset();
+            authErrorMessageEl.classList.add('hidden');
+        };
+
+        const toggleAuthView = (view) => {
+            resetAuthForms();
+            if (view === 'register') {
+                loginView.classList.add('hidden');
+                registerView.classList.remove('hidden');
+            } else {
+                loginView.classList.remove('hidden');
+                registerView.classList.add('hidden');
+            }
+        };
+        
+        // --- UTILS & FORMATTING (Unchanged) ---
+
+        const formatCurrency = (value) => {
+            return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+        };
+
+        const formatDate = (dateString) => {
+            if (!dateString) return 'N/A';
+            // Assumes YYYY-MM-DD
+            const parts = dateString.split('-');
+            if (parts.length === 3) {
+                return `${parts[2]}/${parts[1]}/${parts[0]}`;
+            }
+            return dateString;
+        };
+
+        // --- LOCAL AUTH HANDLERS (Simulated) ---
+        
+        const handleLogin = (e) => {
+            e.preventDefault();
+            authErrorMessageEl.classList.add('hidden');
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            
+            // Simulação de login: Verifica se existe um usuário cadastrado com email e senha
+            const users = loadData(USER_KEY);
+            const user = users.find(u => u.email === email && u.password === password);
+
+            if (user) {
+                currentUserData = user;
+                initApp(); // Redireciona para o app
+            } else {
+                authErrorMessageEl.textContent = "[ERRO] Email ou senha inválidos. Tente novamente ou cadastre-se.";
+                authErrorMessageEl.classList.remove('hidden');
+            }
+        };
+
+        const handleRegister = (e) => {
+            e.preventDefault();
+            authErrorMessageEl.classList.add('hidden');
+            
+            const name = document.getElementById('register-name').value.trim();
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+            const docNumber = document.getElementById('register-doc').value.trim();
+
+            if (password.length < 6) {
+                authErrorMessageEl.textContent = "[ERRO] A senha deve ter pelo menos 6 caracteres.";
+                authErrorMessageEl.classList.remove('hidden');
+                return;
+            }
+            
+            let users = loadData(USER_KEY);
+            if (users.find(u => u.email === email)) {
+                authErrorMessageEl.textContent = "[ERRO] Este email já está em uso.";
+                authErrorMessageEl.classList.remove('hidden');
+                return;
+            }
+
+            // Cria novo usuário (apenas um para este exemplo de LocalStorage)
+            const newUser = {
+                id: Date.now().toString(), // Simula UID
+                name: name,
+                email: email,
+                password: password, // OBS: Em produção, nunca salvaríamos a senha assim.
+                docNumber: docNumber,
+                createdAt: Date.now()
+            };
+            
+            // Em Local Storage, estamos simplificando para que o último cadastro seja o ativo.
+            // Para ter múltiplos usuários em Local Storage, precisaríamos de uma lógica de login mais complexa,
+            // mas manteremos o simples: substitui o user ou adiciona.
+            
+            // Para simplificar, vamos substituir o array de usuários por apenas o usuário atual para este exemplo.
+            // users.push(newUser); // Se quiséssemos vários
+            
+            saveData(USER_KEY, [newUser]); 
+            currentUserData = newUser;
+            initApp();
+        };
+
+        const handleLogout = () => {
+            // Limpa o estado do usuário
+            currentUserData = null;
+            
+            // Limpar dados do Local Storage para simular logout
+            // OBS: Deixamos REALIZED_KEY e FUTURE_KEY intactos, simulando que os dados pertencem ao "único" usuário local.
+            // Para limpar tudo, usaríamos: localStorage.clear();
+            
+            // Volta para a tela de autenticação
+            showAuthScreen();
+        };
+
+        // --- CRUD OPERATIONS (Local Storage) ---
+
+        const loadAndRenderTransactions = () => {
+            if (!currentUserData) return;
+            
+            // 1. Load REALIZED Transactions
+            const realizedTransactions = loadData(REALIZED_KEY);
+            realizedTransactions.sort((a, b) => b.createdAt - a.createdAt);
+            renderTransactions(realizedTransactions);
+            
+            // 2. Load FUTURE Expenses
+            const futureExpenses = loadData(FUTURE_KEY);
+            futureExpenses.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+            renderFutureExpenses(futureExpenses);
+        };
+
+        const addTransaction = (e) => {
+            e.preventDefault();
+            errorMessageEl.classList.add('hidden');
+            
+            if (!currentUserData) return;
+
+            const type = document.getElementById('type').value;
+            const description = document.getElementById('description').value.trim();
+            const paymentMethod = document.getElementById('payment-method').value;
+            let value = parseFloat(document.getElementById('value').value);
+
+            if (!description || isNaN(value) || value <= 0) {
+                errorMessageEl.textContent = "[ERRO] Por favor, preencha a descrição e o valor corretamente.";
+                errorMessageEl.classList.remove('hidden');
+                return;
+            }
+
+            value = Math.round(value * 100) / 100;
+
+            const newTransaction = {
+                id: Date.now().toString(), // Local unique ID
+                type, 
+                description,
+                paymentMethod,
+                value: value, 
+                createdAt: Date.now(),
+            };
+
+            try {
+                const transactions = loadData(REALIZED_KEY);
+                transactions.push(newTransaction);
+                saveData(REALIZED_KEY, transactions);
+                
+                form.reset();
+                loadAndRenderTransactions(); // Re-render everything
+                switchTab(type === 'income' ? 'income-tab' : 'expense-tab');
+            } catch (error) {
+                console.error("Erro ao adicionar transação:", error);
+                errorMessageEl.textContent = "[ERRO] Falha ao salvar transação localmente.";
+                errorMessageEl.classList.remove('hidden');
+            }
+        };
+
+        const addFutureExpense = (e) => {
+            e.preventDefault();
+            futureErrorMessageEl.classList.add('hidden');
+            
+            if (!currentUserData) return;
+
+            const description = document.getElementById('future-description').value.trim();
+            const dueDate = document.getElementById('future-due-date').value;
+            let value = parseFloat(document.getElementById('future-value').value);
+
+            if (!description || !dueDate || isNaN(value) || value <= 0) {
+                futureErrorMessageEl.textContent = "[ERRO] Por favor, preencha a descrição, valor e data prevista corretamente.";
+                futureErrorMessageEl.classList.remove('hidden');
+                return;
+            }
+
+            value = Math.round(value * 100) / 100;
+
+            const newFutureExpense = {
+                id: Date.now().toString(), // Local unique ID
+                description,
+                value: value,
+                dueDate: dueDate, // YYYY-MM-DD string
+                createdAt: Date.now(),
+            };
+
+            try {
+                const expenses = loadData(FUTURE_KEY);
+                expenses.push(newFutureExpense);
+                saveData(FUTURE_KEY, expenses);
+                
+                futureExpenseForm.reset();
+                loadAndRenderTransactions(); // Re-render everything
+                switchTab('future-expense-tab'); 
+            } catch (error) {
+                console.error("Erro ao adicionar despesa futura:", error);
+                futureErrorMessageEl.textContent = "[ERRO] Falha ao salvar despesa futura localmente.";
+                futureErrorMessageEl.classList.remove('hidden');
+            }
+        };
+
+        const deleteTransaction = (id, type) => {
+            if (!currentUserData) return;
+
+            const key = type === 'realized' ? REALIZED_KEY : FUTURE_KEY;
+            let data = loadData(key);
+            
+            const initialLength = data.length;
+            data = data.filter(item => item.id !== id);
+
+            if (data.length < initialLength) {
+                saveData(key, data);
+                console.log(`[LOG] Item excluído (ID: ${id}, Tipo: ${type}).`);
+                loadAndRenderTransactions(); // Re-render to update lists and totals
+            }
+        };
+
+        // --- RENDERING LOGIC (Unchanged) ---
+
+        const createTransactionRow = (transaction) => {
+            const value = parseFloat(transaction.value);
+            const valueColorClass = transaction.type === 'income' ? 'text-income-color' : 'text-expense-color';
+
+            return `
+                <tr class="pixel-table-row transition duration-150 ease-in-out">
+                    <td class="px-3 py-4 truncate max-w-xs sm:max-w-none">
+                        ${transaction.description}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-gray-400">
+                        ${transaction.paymentMethod || 'N/A'}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap font-semibold text-right ${valueColorClass}">
+                        ${formatCurrency(value)}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right font-medium">
+                        <button data-id="${transaction.id}" data-type="realized" class="delete-btn text-red-600 hover:opacity-75 p-1 rounded-md transition duration-150 ease-in-out" aria-label="Excluir Transação">
+                            [EXCLUIR]
+                        </button>
+                    </td>
+                </tr>
+            `;
+        };
+
+        const renderTransactions = (transactions) => {
+            incomeTransactionsList.innerHTML = '';
+            expenseTransactionsList.innerHTML = '';
+
+            let totalIncome = 0;
+            let totalExpense = 0;
+            
+            let incomeHtml = '';
+            let expenseHtml = '';
+
+            transactions.forEach(transaction => {
+                const value = parseFloat(transaction.value);
+                
+                if (transaction.type === 'income') {
+                    totalIncome += value;
+                    incomeHtml += createTransactionRow(transaction);
+                } else {
+                    totalExpense += value;
+                    expenseHtml += createTransactionRow(transaction);
+                }
+            });
+
+            incomeTransactionsList.innerHTML = incomeHtml;
+            expenseTransactionsList.innerHTML = expenseHtml;
+
+            noIncomeTransactionsEl.classList.toggle('hidden', totalIncome !== 0);
+            noExpenseTransactionsEl.classList.toggle('hidden', totalExpense !== 0);
+
+            const currentBalance = totalIncome - totalExpense;
+            
+            totalIncomeEl.textContent = formatCurrency(totalIncome);
+            totalExpenseEl.textContent = formatCurrency(totalExpense);
+            currentBalanceEl.textContent = formatCurrency(currentBalance);
+            
+            if (currentBalance > 0) {
+                currentBalanceEl.className = 'text-xl font-bold text-income-color mt-1';
+            } else if (currentBalance < 0) {
+                currentBalanceEl.className = 'text-xl font-bold text-expense-color mt-1';
+            } else {
+                currentBalanceEl.className = 'text-xl font-bold text-text-color mt-1';
+            }
+
+            attachDeleteListeners();
+        };
+        
+        const createFutureExpenseRow = (expense) => {
+            const value = parseFloat(expense.value);
+            const dueDate = formatDate(expense.dueDate);
+
+            return `
+                <tr class="pixel-table-row transition duration-150 ease-in-out">
+                    <td class="px-3 py-4 truncate max-w-xs sm:max-w-none">
+                        ${expense.description}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-future-color font-semibold">
+                        ${dueDate}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap font-semibold text-future-color text-right">
+                        ${formatCurrency(value)}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right font-medium">
+                        <button data-id="${expense.id}" data-type="future" class="delete-btn text-red-600 hover:opacity-75 p-1 rounded-md transition duration-150 ease-in-out" aria-label="Excluir Despesa Futura">
+                            [EXCLUIR]
+                        </button>
+                    </td>
+                </tr>
+            `;
+        };
+
+        const renderFutureExpenses = (expenses) => {
+            futureExpenseList.innerHTML = '';
+            
+            let futureHtml = '';
+            expenses.forEach(expense => {
+                futureHtml += createFutureExpenseRow(expense);
+            });
+
+            futureExpenseList.innerHTML = futureHtml;
+            noFutureTransactionsEl.classList.toggle('hidden', expenses.length > 0);
+            
+            attachDeleteListeners();
+        };
+
+        // --- GENERAL LOGIC (Tabs, Deletion, Initialization) (Unchanged) ---
+        
+        const switchTab = (activeTabId) => {
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('font-bold', 'text-income-color', 'border-income-color', 'text-expense-color', 'border-expense-color', 'text-future-color', 'border-future-color');
+                button.classList.add('font-medium', 'text-gray-400', 'border-transparent');
+            });
+
+            document.getElementById(activeTabId).classList.remove('hidden');
+
+            const activeButton = document.querySelector(`[data-tab="${activeTabId}"]`);
+            activeButton.classList.remove('font-medium', 'text-gray-400', 'border-transparent', 'hover:text-primary-color');
+            activeButton.classList.add('font-bold');
+
+            if (activeTabId === 'income-tab') {
+                activeButton.classList.add('text-income-color', 'border-income-color');
+            } else if (activeTabId === 'expense-tab') {
+                activeButton.classList.add('text-expense-color', 'border-expense-color');
+            } else if (activeTabId === 'future-expense-tab') {
+                activeButton.classList.add('text-future-color', 'border-future-color');
+            }
+        };
+
+        const setupTabs = () => {
+            tabButtons.forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const tabId = e.currentTarget.dataset.tab;
+                    switchTab(tabId);
+                });
+            });
+            switchTab('income-tab');
+        };
+        
+        const attachDeleteListeners = () => {
+            document.querySelectorAll('.delete-btn').forEach(button => {
+                // Clone/replace to re-attach fresh listeners
+                const oldButton = button.cloneNode(true);
+                button.parentNode.replaceChild(oldButton, button);
+
+                oldButton.addEventListener('click', (e) => {
+                    const id = e.currentTarget.dataset.id;
+                    const type = e.currentTarget.dataset.type;
+                    deleteTransaction(id, type);
+                });
+            });
+        };
+
+        // --- AUTH STATE CHECKER ---
+        
+        const checkAuthState = () => {
+            const users = loadData(USER_KEY);
+            // Assumimos que o primeiro (e único, neste cenário simplificado) usuário cadastrado está "logado"
+            if (users && users.length > 0) {
+                currentUserData = users[0];
+                initApp();
+            } else {
+                showAuthScreen();
+            }
+        };
+
+        // --- APP INITIALIZATION ---
+
+        const initApp = () => {
+             if (currentUserData) {
+                userDisplayEl.textContent = `PLAYER: ${currentUserData.email}`;
+                loadAndRenderTransactions();
+                showAppScreen();
+                setupTabs();
+            }
+        }
+        
+        // --- Main Execution ---
+        
+        window.onload = () => {
+            initializeTheme(); // Initialize theme first
+            showLoadingScreen();
+            
+            // Inicia a checagem de autenticação local
+            checkAuthState();
+
+            // Attach Auth Handlers
+            document.getElementById('login-form').addEventListener('submit', handleLogin);
+            document.getElementById('register-form').addEventListener('submit', handleRegister);
+            document.getElementById('logout-btn').addEventListener('click', handleLogout);
+            
+            // Attach Auth View Toggles
+            document.getElementById('show-register-btn').addEventListener('click', () => toggleAuthView('register'));
+            document.getElementById('show-login-btn').addEventListener('click', () => toggleAuthView('login'));
+
+            // Attach Finance Handlers
+            form.addEventListener('submit', addTransaction);
+            futureExpenseForm.addEventListener('submit', addFutureExpense);
+        };
+    </script>
+</body>
+</html>

@@ -1,28 +1,38 @@
 package com.notification.service;
 
-import com.notification.model.Notification;
-import com.notification.repositoy.NotificationRepository;
+import java.util.List;
+import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.UUID;
+import com.notification.controller.NotificationRealtimeController;
+import com.notification.model.Notification;
+import com.notification.repositoy.NotificationRepository;
 
 @Service
 public class NotificationService {
 
     private final NotificationRepository repository;
+    private final NotificationRealtimeController realtimeController;
 
     // 🔧 Injeção de dependência via construtor (recomendada)
-    public NotificationService(NotificationRepository repository) {
+    public NotificationService(NotificationRepository repository, NotificationRealtimeController realtimeController) {
         this.repository = repository;
+        this.realtimeController = realtimeController;
     }
 
-    // 📨 Criar uma nova notificação
-    public Notification createNotification(String userId, String msg) {
+
+     public Notification createNotification(String userId, String msg) {
         Notification notification = new Notification(userId, msg);
-        return repository.save(notification);
+        Notification saved = repository.save(notification);
+
+        // envia em tempo real
+        realtimeController.sendNotification(saved);
+
+        return saved;
     }
+
+
 
     // 🔍 Listar todas as notificações de um usuário
     public List<Notification> getUserNotifications(String userId) {
